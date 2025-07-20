@@ -10,11 +10,16 @@ const tiles = {
 };
 
 const tileMap = [
-  ["grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass"],
-  ["grass", "dirt", "dirt", "dirt", "grass", "grass", "grass", "grass", "dirt", "dirt", "dirt", "grass", "grass", "grass", "grass", "dirt", "dirt", "dirt", "grass", "grass"],
-  ["grass", "dirt", "wall", "dirt", "grass", "grass", "grass", "grass", "dirt", "wall", "dirt", "grass", "grass", "grass", "grass", "dirt", "wall", "dirt", "grass", "grass"],
-  ["grass", "dirt", "dirt", "dirt", "grass", "grass", "grass", "grass", "dirt", "dirt", "dirt", "grass", "grass", "grass", "grass", "dirt", "dirt", "dirt", "grass", "grass"],
-  ["grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass"],
+  ["grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass"],
+  ["grass", "dirt", "dirt", "dirt", "grass", "dirt", "dirt", "dirt", "dirt", "grass"],
+  ["grass", "dirt", "wall", "dirt", "grass", "dirt", "wall", "wall", "dirt", "grass"],
+  ["grass", "dirt", "dirt", "dirt", "grass", "dirt", "dirt", "dirt", "dirt", "grass"],
+  ["grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass"],
+  ["grass", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "grass"],
+  ["grass", "dirt", "wall", "dirt", "wall", "dirt", "wall", "dirt", "wall", "grass"],
+  ["grass", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "grass"],
+  ["grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass"],
+  ["grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass"],
 ];
 
 const player = {
@@ -22,8 +27,19 @@ const player = {
   y: 1,
   sprite: new Image()
 };
-
 player.sprite.src = "assets/player/player.png";
+
+const itemsOnMap = [
+  { x: 3, y: 1, type: "sword", picked: false },
+  { x: 6, y: 6, type: "potion", picked: false }
+];
+
+const itemSprites = {
+  sword: new Image(),
+  potion: new Image()
+};
+itemSprites.sword.src = "assets/items/sword.png";
+itemSprites.potion.src = "assets/items/potion.png";
 
 const loadedTiles = {};
 
@@ -53,6 +69,13 @@ function draw() {
     }
   }
 
+  // desenha os itens
+  itemsOnMap.forEach(item => {
+    if (!item.picked) {
+      ctx.drawImage(itemSprites[item.type], item.x * TILE_SIZE, item.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    }
+  });
+
   // desenha o jogador
   ctx.drawImage(player.sprite, player.x * TILE_SIZE, player.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
 
@@ -63,13 +86,29 @@ function movePlayer(dx, dy) {
   const newX = player.x + dx;
   const newY = player.y + dy;
 
-  // Verifica se está dentro do mapa
   if (newY < 0 || newY >= tileMap.length || newX < 0 || newX >= tileMap[0].length) return;
-
-  // Verifica se é parede
   if (tileMap[newY][newX] !== "wall") {
     player.x = newX;
     player.y = newY;
+
+    // checa se há item no local
+    itemsOnMap.forEach(item => {
+      if (!item.picked && item.x === player.x && item.y === player.y) {
+        item.picked = true;
+        addToInventory(item.type);
+      }
+    });
+  }
+}
+
+function addToInventory(itemType) {
+  const inventorySlots = document.querySelectorAll("#inventory .slot");
+  for (let i = 0; i < inventorySlots.length; i++) {
+    if (inventorySlots[i].dataset.filled === "false") {
+      inventorySlots[i].src = `assets/items/${itemType}.png`;
+      inventorySlots[i].dataset.filled = "true";
+      break;
+    }
   }
 }
 
@@ -82,4 +121,6 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-loadTiles(draw);
+player.sprite.onload = () => {
+  loadTiles(draw);
+};
