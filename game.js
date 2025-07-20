@@ -9,18 +9,9 @@ const tiles = {
   wall: "assets/tiles/wall.png"
 };
 
-const tileMap = [
-  ["grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass"],
-  ["grass", "dirt", "dirt", "dirt", "grass", "dirt", "dirt", "dirt", "dirt", "grass"],
-  ["grass", "dirt", "wall", "dirt", "grass", "dirt", "wall", "wall", "dirt", "grass"],
-  ["grass", "dirt", "dirt", "dirt", "grass", "dirt", "dirt", "dirt", "dirt", "grass"],
-  ["grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass"],
-  ["grass", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "grass"],
-  ["grass", "dirt", "wall", "dirt", "wall", "dirt", "wall", "dirt", "wall", "grass"],
-  ["grass", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "dirt", "grass"],
-  ["grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass"],
-  ["grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass", "grass"],
-];
+const loadedTiles = {};
+const tileMap = [];
+const itemsOnMap = [];
 
 const player = {
   x: 1,
@@ -29,11 +20,6 @@ const player = {
 };
 player.sprite.src = "assets/player/player.png";
 
-const itemsOnMap = [
-  { x: 3, y: 1, type: "sword", picked: false },
-  { x: 6, y: 6, type: "potion", picked: false }
-];
-
 const itemSprites = {
   sword: new Image(),
   potion: new Image()
@@ -41,27 +27,43 @@ const itemSprites = {
 itemSprites.sword.src = "assets/items/sword.png";
 itemSprites.potion.src = "assets/items/potion.png";
 
-const loadedTiles = {};
+let equippedItem = null;
 
-function loadTiles(callback) {
-  let loadedCount = 0;
-  const total = Object.keys(tiles).length;
+function generateRandomMap() {
+  const width = 10;
+  const height = 10;
+  tileMap.length = 0;
+  itemsOnMap.length = 0;
 
-  for (let tile in tiles) {
-    const img = new Image();
-    img.src = tiles[tile];
-    img.onload = () => {
-      loadedTiles[tile] = img;
-      loadedCount++;
-      if (loadedCount === total) callback();
-    };
+  for (let y = 0; y < height; y++) {
+    tileMap[y] = [];
+    for (let x = 0; x < width; x++) {
+      const rand = Math.random();
+      if (rand < 0.1) {
+        tileMap[y][x] = "wall";
+      } else if (rand < 0.3) {
+        tileMap[y][x] = "dirt";
+      } else {
+        tileMap[y][x] = "grass";
+      }
+    }
+  }
+
+  for (let i = 0; i < 2; i++) {
+    let rx = Math.floor(Math.random() * width);
+    let ry = Math.floor(Math.random() * height);
+    itemsOnMap.push({
+      x: rx,
+      y: ry,
+      type: i % 2 === 0 ? "sword" : "potion",
+      picked: false
+    });
   }
 }
 
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // desenha o mapa
   for (let y = 0; y < tileMap.length; y++) {
     for (let x = 0; x < tileMap[y].length; x++) {
       const tile = tileMap[y][x];
@@ -69,29 +71,32 @@ function draw() {
     }
   }
 
-  // desenha os itens
   itemsOnMap.forEach(item => {
     if (!item.picked) {
       ctx.drawImage(itemSprites[item.type], item.x * TILE_SIZE, item.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
     }
   });
 
-  // desenha o jogador
   ctx.drawImage(player.sprite, player.x * TILE_SIZE, player.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
 
   requestAnimationFrame(draw);
 }
 
 function movePlayer(dx, dy) {
-  const newX = player.x + dx;
-  const newY = player.y + dy;
+  let newX = player.x + dx;
+  let newY = player.y + dy;
 
-  if (newY < 0 || newY >= tileMap.length || newX < 0 || newX >= tileMap[0].length) return;
+  if (newY < 0 || newY >= tileMap.length || newX < 0 || newX >= tileMap[0].length) {
+    generateRandomMap();
+    player.x = Math.floor(tileMap[0].length / 2);
+    player.y = Math.floor(tileMap.length / 2);
+    return;
+  }
+
   if (tileMap[newY][newX] !== "wall") {
     player.x = newX;
     player.y = newY;
 
-    // checa se há item no local
     itemsOnMap.forEach(item => {
       if (!item.picked && item.x === player.x && item.y === player.y) {
         item.picked = true;
@@ -121,6 +126,35 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+document.querySelectorAll("#inventory .slot").forEach(slot => {
+  slot.addEventListener("click", () => {
+    if (slot.dataset.filled === "true") {
+      if (slot.classList.contains("equipped")) {
+        slot.classList.remove("equipped");
+        equippedItem = null;
+      } else {
+        document.querySelectorAll("#inventory .slot").forEach(s => s.classList.remove("equipped"));
+        slot.classList.add("equipped");
+        equippedItem = slot.src;
+      }
+    }
+  });
+});
+
 player.sprite.onload = () => {
-  loadTiles(draw);
+  let loadedCount = 0;
+  const total = Object.keys(tiles).length;
+
+  for (let tile in tiles) {
+    const img = new Image();
+    img.src = tiles[tile];
+    img.onload = () => {
+      loadedTiles[tile] = img;
+      loadedCount++;
+      if (loadedCount === total) {
+        generateRandomMap();
+        draw();
+      }
+    };
+  }
 };
