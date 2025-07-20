@@ -1,0 +1,33 @@
+body {
+  margin: 0;
+  overflow: hidden;
+  background-color: black;
+}
+
+#gameCanvas {
+  display: block;
+  margin: auto;
+  border: 2px solid white;
+}
+
+#ui {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 10;
+}
+
+#health-bar .heart {
+  width: 32px;
+  margin-right: 5px;
+}
+
+#inventory {
+  margin-top: 10px;
+}
+
+#inventory .slot {
+  width: 40px;
+  height: 40px;
+  margin-right: 5px;
+}
